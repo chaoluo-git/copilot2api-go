@@ -2,6 +2,16 @@
 
 [English](#english) | [中文](#中文)
 
+## Build and start this checkout
+
+From the repository root, build the local source and start it with Docker Compose:
+
+```bash
+docker-compose build copilot-go
+docker-compose up -d copilot-go
+docker-compose logs -f copilot-go
+```
+
 ---
 
 <a id="english"></a>
@@ -27,6 +37,15 @@ A GitHub Copilot API proxy built on the **official [GitHub Copilot CLI SDK](http
 
 ### Quick Start
 
+To run this checkout from source with Docker Compose:
+
+```bash
+docker-compose build copilot-go
+docker-compose up -d copilot-go
+```
+
+The Compose file builds the local Dockerfile and persists account data in the `copilot-data` volume. If your network uses TLS inspection, place the trusted PEM root CA certificate in `certs/` as a `.crt` file before starting the container.
+
 #### Docker (Recommended)
 
 ```bash
@@ -43,6 +62,7 @@ docker run -d \
 ```yaml
 services:
   copilot-go:
+    build: .
     image: ghcr.io/starrykira/copilot2api-go:latest
     container_name: copilot-go
     restart: unless-stopped
@@ -51,6 +71,7 @@ services:
       - "4141:4141"
     volumes:
       - copilot-data:/root/.local/share/copilot-api
+      - ./certs:/run/copilot/custom-cas:ro
     environment:
       - TZ=Asia/Shanghai
 
@@ -285,6 +306,16 @@ MIT
 
 ### 快速开始
 
+在仓库根目录运行以下命令，从当前源码构建并启动：
+
+```bash
+docker-compose build copilot-go
+docker-compose up -d copilot-go
+docker-compose logs -f copilot-go
+```
+
+Compose 会构建本地 Dockerfile，并将账号数据保存在 `copilot-data` 卷中。如果网络使用 TLS 检查，请在启动前将可信的 PEM 根 CA 证书以 `.crt` 文件放入 `certs/`。
+
 #### Docker（推荐）
 
 ```bash
@@ -301,6 +332,7 @@ docker run -d \
 ```yaml
 services:
   copilot-go:
+    build: .
     image: ghcr.io/starrykira/copilot2api-go:latest
     container_name: copilot-go
     restart: unless-stopped
@@ -309,6 +341,7 @@ services:
       - "4141:4141"
     volumes:
       - copilot-data:/root/.local/share/copilot-api
+      - ./certs:/run/copilot/custom-cas:ro
     environment:
       - TZ=Asia/Shanghai
 

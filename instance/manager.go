@@ -10,6 +10,8 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -69,15 +71,11 @@ func StartInstance(account store.Account) error {
 		return err
 	}
 
-	// Get models
-	if err := fetchModels(state); err != nil {
-		log.Printf("Warning: failed to fetch models for account %s: %v", account.Name, err)
-	}
-
 	// Start official Copilot CLI SDK client
 	sdkClient := sdk.NewClient(&sdk.ClientOptions{
 		GitHubToken:     account.GithubToken,
 		UseLoggedInUser: sdk.Bool(false),
+		Env:             sdkRuntimeEnv(config.GetProxyURL()),
 	})
 	if err := sdkClient.Start(context.Background()); err != nil {
 		return fmt.Errorf("SDK client failed to start for %s: %w", account.Name, err)
@@ -110,6 +108,29 @@ func StartInstance(account store.Account) error {
 
 	log.Printf("Instance started for account: %s", account.Name)
 	return nil
+}
+
+// sdkRuntimeEnv passes the proxy configured in the web console to the separate
+// Copilot CLI runtime. The Go HTTP clients use the same setting, but the SDK
+// runtime is a child process and does not know about that in-memory setting.
+func sdkRuntimeEnv(proxyURL string) []string {
+	env := os.Environ()
+	if proxyURL == "" {
+		return env
+	}
+
+	proxyKeys := []string{"HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"}
+	for _, key := range proxyKeys {
+		prefix := key + "="
+		filtered := make([]string, 0, len(env)+1)
+		for _, entry := range env {
+			if !strings.HasPrefix(entry, prefix) {
+				filtered = append(filtered, entry)
+			}
+		}
+		env = append(filtered, key+"="+proxyURL)
+	}
+	return env
 }
 
 func StopInstance(accountID string) {
@@ -333,53 +354,6 @@ func refreshCopilotTokenWithRetry(state *config.State, maxRetries int) error {
 		log.Printf("Token refresh attempt %d failed: %v", attempt+1, lastErr)
 	}
 	return fmt.Errorf("token refresh failed after %d attempts: %w", maxRetries+1, lastErr)
-}
-
-func fetchModels(state *config.State) error {
-	state.RLock()
-	baseURL := config.CopilotBaseURL(state.AccountType)
-	state.RUnlock()
-
-	req, err := http.NewRequest("GET", baseURL+"/models", nil)
-	if err != nil {
-		return err
-	}
-	for k, v := range config.CopilotHeaders(state, false) {
-		req.Header[k] = v
-	}
-
-	resp, err := getDefaultClient().Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	var models config.ModelsResponse
-	if err := json.Unmarshal(body, &models); err != nil {
-		// Try parsing as array
-		var modelList []config.ModelEntry
-		if err2 := json.Unmarshal(body, &modelList); err2 != nil {
-			return fmt.Errorf("failed to parse models: %w", err)
-		}
-		models = config.ModelsResponse{
-			Object: "list",
-			Data:   modelList,
-		}
-	}
-
-	if models.Object == "" {
-		models.Object = "list"
-	}
-
-	state.Lock()
-	state.Models = &models
-	state.Unlock()
-	return nil
 }
 
 // fetchSDKModels asks the Copilot CLI SDK which models its sessions accept and

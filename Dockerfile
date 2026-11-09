@@ -24,8 +24,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=backend /app/copilot-go .
+COPY docker-entrypoint.sh /usr/local/bin/copilot-entrypoint
+RUN chmod 755 /usr/local/bin/copilot-entrypoint
 
 EXPOSE 3000 4141
 VOLUME /root/.local/share/copilot-api
 
-ENTRYPOINT ["./copilot-go"]
+ENTRYPOINT ["/usr/local/bin/copilot-entrypoint"]

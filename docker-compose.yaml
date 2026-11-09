@@ -1,5 +1,6 @@
 services:
   copilot-go:
+    build: .
     image: ghcr.io/starrykira/copilot2api-go:latest
     container_name: copilot-go
     restart: unless-stopped
@@ -8,6 +9,7 @@ services:
       - "4141:4141"   # Proxy
     volumes:
       - copilot-data:/root/.local/share/copilot-api
+      - ./certs:/run/copilot/custom-cas:ro
     environment:
       - TZ=Asia/Shanghai
 

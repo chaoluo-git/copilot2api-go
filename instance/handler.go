@@ -288,7 +288,10 @@ func lookupMaxOutputTokens(state *config.State, modelID string) int {
 		return 0
 	}
 	state.RLock()
-	models := state.Models
+	models := state.SDKModels
+	if models == nil {
+		models = state.Models
+	}
 	state.RUnlock()
 	if models == nil {
 		return 0

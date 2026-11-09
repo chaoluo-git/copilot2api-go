@@ -99,8 +99,8 @@ type State struct {
 	Models         *ModelsResponse
 	// SDKModels are the models the Copilot CLI SDK accepts in session.create —
 	// a different (usually smaller) set than the REST /models list. Clients
-	// must pick from it, so it takes precedence wherever models are listed;
-	// Models remains as fallback and for max_output_tokens lookup.
+	// must pick from it, so it takes precedence wherever models are listed.
+	// Models remains an optional metadata fallback.
 	SDKModels     *ModelsResponse
 	VSCodeVersion string
 }
